@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>オプション差額計算</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:"Segoe UI","Hiragino Kaku Gothic ProN","メイリオ",sans-serif}
+  body{
+    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+    min-height:100vh;
+    padding:30px 20px;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+  }
+.container{
+    background:#fff;
+    border-radius:20px;
+    padding:32px;
+    width:100%;
+    max-width:700px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.3);
+  }
+  h2{text-align:center;color:#333;margin-bottom:24px;font-size:1.6rem}
+
+.grid{
+    display:grid;
+    grid-template-columns:1fr 2fr;
+    gap:12px 16px;
+    margin-bottom:24px;
+  }
+.grid label{
+    display:flex;
+    align-items:center;
+    color:#555;
+    font-weight:600;
+    font-size:0.95rem;
+  }
+.grid input{
+    padding:12px 14px;
+    border:2px solid #e0e0e0;
+    border-radius:10px;
+    font-size:1rem;
+    transition:0.2s;
+  }
+.grid input:focus{
+    border-color:#667eea;
+    outline:none;
+    box-shadow:0 0 0 3px rgba(102,126,234,0.1);
+  }
+.grid input[readonly]{
+    background:#f8f9fa;
+    color:#333;
+    font-weight:600;
+  }
+
+.btn-group{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+  }
+  button{
+    padding:14px 28px;
+    border:none;
+    border-radius:10px;
+    font-size:1rem;
+    font-weight:600;
+    cursor:pointer;
+    transition:0.2s;
+  }
+.btn-calc{
+    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+    color:#fff;
+  }
+.btn-calc:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(102,126,234,0.4)}
+.btn-reset{background:#f0f0f0;color:#666}
+.btn-reset:hover{background:#e0e0e0}
+.btn-source{background:#4a5568;color:#fff}
+.btn-source:hover{background:#2d3748}
+
+.source-box{
+    margin-top:20px;
+    padding-top:20px;
+    border-top:2px solid #eee;
+    display:none;
+  }
+.source-box.show{display:block}
+.source-box h3{color:#333;margin-bottom:12px;font-size:1.1rem}
+  textarea{
+    width:100%;
+    height:250px;
+    padding:14px;
+    border:2px solid #e0e0e0;
+    border-radius:10px;
+    font-family:"Consolas","Monaco","Courier New",monospace;
+    font-size:0.85rem;
+    line-height:1.5;
+    resize:vertical;
+    background:#1e1e1e;
+    color:#d4d4d4;
+  }
+
+.alert{
+    background:#fff3cd;
+    color:#856404;
+    padding:12px 14px;
+    border-radius:8px;
+    font-size:0.9rem;
+    margin-bottom:16px;
+    display:none;
+    border-left:4px solid #ffc107;
+  }
+.alert.show{display:block}
+
+  @media(max-width:600px){
+  .grid{grid-template-columns:1fr}
+  .grid label{margin-bottom:4px}
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h2>オプション差額計算</h2>
+    <div id="alertBox" class="alert"></div>
+
+    <div class="grid">
+      <label>国債</label>
+      <input type="text" id="bondField" placeholder="例: 100.5">
+
+      <label>銘柄</label>
+      <input type="text" id="stockField" placeholder="例: 98.2">
+
+      <label>損失 O1</label>
+      <input type="text" id="o1Field" placeholder="オプション価格">
+
+      <label>利益 O2</label>
+      <input type="text" id="o2Field" placeholder="オプション価格">
+
+      <label>T1</label>
+      <input type="text" id="t1Field" readonly>
+
+      <label>T2</label>
+      <input type="text" id="t2Field" readonly>
+
+      <label>差額</label>
+      <input type="text" id="trendField" readonly>
+
+      <label>差額率</label>
+      <input type="text" id="diffRateField" readonly>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn-calc" onclick="calculate()">計算する</button>
+      <button class="btn-reset" onclick="resetForm()">リセット</button>
+      <button class="btn-source" onclick="showSource()">Javaソース表示</button>
+    </div>
+
+    <div id="sourceBox" class="source-box">
+      <h3>Javaソースコード</h3>
+      <textarea id="sourceArea" readonly></textarea>
+    </div>
+  </div>
+
+<script>
+// Javaコードは文字列として安全に定義
+const javaCode =
+`import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+
+public class OptionDifferenceCalculator extends JFrame {
+  private JTextField bondField;
+  private JTextField stockField;
+  private JTextField o1Field;
+  private JTextField o2Field;
+  private JTextField t1Field;
+  private JTextField t2Field;
+  private JTextField trendField;
+  private JTextField diffRateField;
+  private JTextArea sourceArea;
+
+  public OptionDifferenceCalculator() {
+    setTitle("オプション差額計算");
+    setSize(700, 700);
+    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    setLocationRelativeTo(null);
+
+    JPanel panel = new JPanel();
+    panel.setLayout(new GridLayout(0, 2, 10, 10));
+
+    bondField = new JTextField();
+    stockField = new JTextField();
+    o1Field = new JTextField();
+    o2Field = new JTextField();
+    t1Field = new JTextField();
+    t2Field = new JTextField();
+    trendField = new JTextField();
+    diffRateField = new JTextField();
+
+    t1Field.setEditable(false);
+    t2Field.setEditable(false);
+    trendField.setEditable(false);
+    diffRateField.setEditable(false);
+
+    panel.add(new JLabel("国債"));
+    panel.add(bondField);
+    panel.add(new JLabel("銘柄"));
+    panel.add(stockField);
+    panel.add(new JLabel("損失 O1"));
+    panel.add(o1Field);
+    panel.add(new JLabel("利益 O2"));
+    panel.add(o2Field);
+    panel.add(new JLabel("T1"));
+    panel.add(t1Field);
+    panel.add(new JLabel("T2"));
+    panel.add(t2Field);
+    panel.add(new JLabel("差額"));
+    panel.add(trendField);
+    panel.add(new JLabel("差額率"));
+    panel.add(diffRateField);
+
+    JButton calcButton = new JButton("計算する");
+    JButton resetButton = new JButton("リセット");
+    JButton sourceButton = new JButton("ソース表示");
+
+    JPanel buttonPanel = new JPanel();
+    buttonPanel.add(calcButton);
+    buttonPanel.add(resetButton);
+    buttonPanel.add(sourceButton);
+
+    sourceArea = new JTextArea();
+    sourceArea.setEditable(false);
+    JScrollPane scrollPane = new JScrollPane(sourceArea);
+    scrollPane.setPreferredSize(new Dimension(650, 250));
+
+    calcButton.addActionListener(e -> calculate());
+    resetButton.addActionListener(e -> resetForm());
+    sourceButton.addActionListener(e -> showSource());
+
+    setLayout(new BorderLayout());
+    add(panel, BorderLayout.NORTH);
+    add(buttonPanel, BorderLayout.CENTER);
+    add(scrollPane, BorderLayout.SOUTH);
+  }
+
+  private void calculate() {
+    try {
+      double bond = Double.parseDouble(bondField.getText());
+      double stock = Double.parseDouble(stockField.getText());
+      double o1 = Double.parseDouble(o1Field.getText());
+      double o2 = Double.parseDouble(o2Field.getText());
+
+      if (o1 == 0 || o2 == 0) {
+        JOptionPane.showMessageDialog(this, "損失または利益に0は入力できません");
+        return;
+      }
+
+      double t1 = (bond - stock) / o1;
+      double t2 = (bond - stock) / o2;
+      double trend = o1 - o2;
+      double diffRate = 0;
+
+      if (o1 > o2) {
+        diffRate = ((o1 - o2) / o2) * 100;
+      } else if (o2 > o1) {
+        diffRate = ((o2 - o1) / o1) * 100;
+      }
+
+      t1Field.setText(String.format("%.4f", t1));
+      t2Field.setText(String.format("%.2f", t2));
+      trendField.setText(String.format("%.2f", trend));
+      diffRateField.setText(String.format("%.2f%%", diffRate));
+    } catch (Exception ex) {
+      JOptionPane.showMessageDialog(this, "すべての項目に数値を入力してください");
+    }
+  }
+
+  private void resetForm() {
+    bondField.setText("");
+    stockField.setText("");
+    o1Field.setText("");
+    o2Field.setText("");
+    t1Field.setText("");
+    t2Field.setText("");
+    trendField.setText("");
+    diffRateField.setText("");
+  }
+
+  private void showSource() {
+    String sourceCode = "mainメソッド部分は省略";
+    sourceArea.setText(sourceCode);
+  }
+
+  public static void main(String[] args) {
+    SwingUtilities.invokeLater(() -> {
+      new OptionDifferenceCalculator().setVisible(true);
+    });
+  }
+}`;
+
+function showAlert(msg){
+  const alertBox = document.getElementById('alertBox');
+  alertBox.textContent = msg;
+  alertBox.classList.add('show');
+  setTimeout(()=>alertBox.classList.remove('show'), 3000);
+}
+
+function calculate(){
+  const bond = parseFloat(document.getElementById('bondField').value);
+  const stock = parseFloat(document.getElementById('stockField').value);
+  const o1 = parseFloat(document.getElementById('o1Field').value);
+  const o2 = parseFloat(document.getElementById('o2Field').value);
+
+  if(isNaN(bond) || isNaN(stock) || isNaN(o1) || isNaN(o2)){
+    showAlert('すべての項目に数値を入力してください');
+    return;
+  }
+  if(o1 === 0 || o2 === 0){
+    showAlert('損失または利益に0は入力できません');
+    return;
+  }
+
+  const t1 = (bond - stock) / o1;
+  const t2 = (bond - stock) / o2;
+  const trend = o1 - o2;
+  let diffRate = 0;
+
+  if(o1 > o2){
+    diffRate = ((o1 - o2) / o2) * 100;
+  } else if(o2 > o1){
+    diffRate = ((o2 - o1) / o1) * 100;
+  }
+
+  document.getElementById('t1Field').value = t1.toFixed(4);
+  document.getElementById('t2Field').value = t2.toFixed(4);
+  document.getElementById('trendField').value = trend.toFixed(2);
+  document.getElementById('diffRateField').value = diffRate.toFixed(2) + '%';
+}
+
+function resetForm(){
+  ['bondField','stockField','o1Field','o2Field','t1Field','t2Field','trendField','diffRateField']
+  .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('alertBox').classList.remove('show');
+  document.getElementById('sourceBox').classList.remove('show');
+}
+
+function showSource(){
+  const box = document.getElementById('sourceBox');
+  const area = document.getElementById('sourceArea');
+  area.value = javaCode;
+  box.classList.add('show');
+  area.scrollIntoView({behavior:'smooth'});
+}
+
+// Enterキーでも計算できるように
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Enter') calculate();
+});
+</script>
+</body>
+</html>
+
